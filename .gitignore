@@ -1,0 +1,19 @@
+# env
+.env.local
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+backend/ml/model.joblib
+
+# node / next
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# os
+.DS_Store
+Thumbs.db
