@@ -1,0 +1,11 @@
+:80 {
+	# WebSocket stream goes straight to the FastAPI backend
+	handle /ws/stream* {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else (pages + /api/* rewrites) is served by Next.js
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
