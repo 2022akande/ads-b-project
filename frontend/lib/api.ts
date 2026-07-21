@@ -1,5 +1,16 @@
 import type { AttackType } from "./types";
 
+// Parse a response as JSON, but never throw the opaque "Unexpected token 'I'" that
+// results from calling res.json() on a non-JSON body (e.g. a bare 500 error page).
+async function parseJson(res: Response) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: `HTTP ${res.status}: ${text.slice(0, 200) || res.statusText}` };
+  }
+}
+
 // REST goes through the Next.js rewrite proxy (see next.config.mjs).
 export async function injectAttack(
   attack_type: AttackType,
@@ -11,15 +22,15 @@ export async function injectAttack(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ attack_type, severity, target_icao: target_icao ?? null }),
   });
-  return res.json();
+  return parseJson(res);
 }
 
 export async function clearAttacks() {
   const res = await fetch("/api/clear", { method: "POST" });
-  return res.json();
+  return parseJson(res);
 }
 
 export async function getModelInfo() {
   const res = await fetch("/api/model");
-  return res.json();
+  return parseJson(res);
 }

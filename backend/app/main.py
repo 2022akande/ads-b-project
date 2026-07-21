@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger("ai-sysdef")
 
 from .schema import AttackType
 from .scenario import ScenarioEngine
@@ -30,6 +35,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Return unhandled errors as JSON (not a bare 'Internal Server Error' string) and
+    log the full traceback to stderr so it is visible without CloudWatch.
+
+    The `error`/`trace` fields make the real cause visible in the browser Network tab;
+    drop them (keep the logging) once the deployment is debugged.
+    """
+    tb = traceback.format_exc()
+    logger.error("Unhandled error on %s %s\n%s", request.method, request.url.path, tb)
+    return JSONResponse(
+        status_code=500,
+        content={"error": f"{type(exc).__name__}: {exc}", "trace": tb.splitlines()[-8:]},
+    )
 
 
 class InjectRequest(BaseModel):

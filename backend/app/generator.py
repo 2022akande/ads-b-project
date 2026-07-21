@@ -254,7 +254,10 @@ class TrafficSimulator:
     def _pick_legit_target(self, target_icao: Optional[str]) -> Optional[Aircraft]:
         if target_icao and target_icao in self.fleet:
             return self.fleet[target_icao]
-        candidates = [a for a in self.fleet.values() if not a.is_ghost and a.attack == AttackType.NONE]
+        # Snapshot: the async tick loop mutates self.fleet on another thread, and
+        # inject runs in FastAPI's sync threadpool. Iterating the live dict can raise
+        # "dictionary changed size during iteration".
+        candidates = [a for a in list(self.fleet.values()) if not a.is_ghost and a.attack == AttackType.NONE]
         return self.rng.choice(candidates) if candidates else None
 
     def _spawn_ghost(self, severity: float) -> Aircraft:
