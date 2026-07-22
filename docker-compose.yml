@@ -2,10 +2,16 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
     logging:
       driver: awslogs
       options:
-        awslogs-region: us-east-1        # your instance's region
+        awslogs-region: us-east-1
         awslogs-group: /adsb/backend
         awslogs-create-group: "true"
         awslogs-stream: backend
@@ -14,16 +20,18 @@ services:
     build:
       context: ./frontend
       args:
-        # Baked into the client bundle at build time. Caddy proxies this path
-        # to the backend. Switch to wss://<domain>/ws/stream if HTTPS is added.
         NEXT_PUBLIC_WS_URL: ws://100.51.204.55/ws/stream
     environment:
-      # Server-side rewrite target for /api/* (next.config.mjs)
       BACKEND_URL: http://backend:8000
     restart: unless-stopped
 
   caddy:
     image: caddy:2
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
     ports:
       - "80:80"
     volumes:
