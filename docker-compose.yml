@@ -2,6 +2,13 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1        # your instance's region
+        awslogs-group: /adsb/backend
+        awslogs-create-group: "true"
+        awslogs-stream: backend
 
   frontend:
     build:
@@ -22,3 +29,10 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /adsb/caddy
+        awslogs-create-group: "true"
+        awslogs-stream: caddy
